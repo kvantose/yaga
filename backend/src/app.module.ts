@@ -1,0 +1,30 @@
+import 'dotenv/config';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CatalogModule } from './catalog/catalog.module';
+import { TelegramModule } from './telegram/telegram.module';
+import { BasketModule } from './basket/basket.module';
+
+console.log({
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  TYPE: typeof process.env.DB_PASSWORD,
+});
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT),
+      username: process.env.DB_USER,
+      password: String(process.env.DB_PASSWORD),
+      database: process.env.DB_NAME,
+      autoLoadEntities: true,
+      synchronize: true, // ⚠️ только для dev
+    }),
+    CatalogModule,
+    TelegramModule,
+    BasketModule,
+  ],
+})
+export class AppModule {}
