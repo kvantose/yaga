@@ -20,7 +20,7 @@ interface CatalogItem {
 export default function Panel() {
   const [data, setData] = useState<CatalogItem[]>([]);
   useEffect(() => {
-    fetch("http://localhost:4000/api/catalog")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/catalog`)
       .then((res) => res.json())
       .then((data) => setData(data))
       .catch((err) => console.log(err));
