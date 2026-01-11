@@ -23,3 +23,14 @@ services:
       - postgres_yoga
     env_file:
       - .env
+
+  frontend_yoga:
+    build:
+      context: ./forntend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend_yoga
+    env_file:
+      - .env
