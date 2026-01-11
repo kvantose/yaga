@@ -1,0 +1,25 @@
+services:
+  postgres_yoga:
+    container_name: postgres_yoga
+    image: postgres:17.7
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./docker/data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5670:5670"
+    expose:
+      - 5670
+    command: -p 5670
+
+  backend_yoga:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres_yoga
+    env_file:
+      - .env
