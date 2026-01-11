@@ -25,9 +25,7 @@ services:
       - .env
 
   frontend_yoga:
-    build:
-      context: ./forntend
-      dockerfile: Dockerfile
+    image: yaga-frontend:latest
     ports:
       - "3000:3000"
     depends_on:
