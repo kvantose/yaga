@@ -7,7 +7,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 
 
 RUN npm ci
@@ -23,8 +23,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY src ./src
-COPY package.json tsconfig.json tsconfig.build.json nest-cli.json ./
+COPY backend/src ./src
+COPY backend/package.json backend/tsconfig.json backend/tsconfig.build.json backend/nest-cli.json ./
 
 
 RUN npm run build
@@ -42,6 +42,6 @@ RUN apt-get update \
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY package.json ./
+COPY backend/package.json ./
 
 CMD ["node", "dist/main.js"]
