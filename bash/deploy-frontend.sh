@@ -5,6 +5,7 @@ set -euo pipefail
 SERVER_USER="root"
 SERVER_HOST="80.78.242.62"
 SERVER_DIR="/root/tmp"
+PROJECT_DIR="/root/yaga"         # директория с docker-compose.yaml на сервере
 SERVICE_NAME="frontend_yoga"     # имя сервиса в docker compose
 IMAGE_TAG="yaga-frontend:amd64"
 FRONTEND_DIR="../forntend"
@@ -29,6 +30,7 @@ ssh "${SERVER_USER}@${SERVER_HOST}" bash -lc "'
   set -e
   cd ${SERVER_DIR}
   gunzip -c ${ARCHIVE_NAME} | docker load
+  cd ${PROJECT_DIR}
   docker compose up -d --no-deps --force-recreate ${SERVICE_NAME}
   docker image ls | head -n 20
 '"
