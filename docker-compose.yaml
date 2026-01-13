@@ -4,7 +4,7 @@ services:
     image: postgres:17.7
     restart: always
     env_file:
-      - .env
+      - forntend/.env
     volumes:
       - ./docker/data/postgres:/var/lib/postgresql/data
     ports:
@@ -22,16 +22,16 @@ services:
     depends_on:
       - postgres_yoga
     env_file:
-      - .env
+      - forntend/.env
 
   frontend_yoga:
-    image: yaga-frontend:latest
+    image:  yaga-frontend:amd64
     ports:
       - "3000:3000"
     depends_on:
       - backend_yoga
     env_file:
-      - .env
+      - forntend/.env
 
   nginx_yoga:
     container_name: nginx_yoga
