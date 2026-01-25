@@ -1,8 +1,11 @@
-import { ICatalog } from "@/src/types/catalog.interface";
+import { CreateCatalogDto } from "@/src/store/catalog.store";
 import { Modal } from "antd";
+import { CarouselImages } from "../../CarouselImages/CarouselImages";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ModalProps {
-  item: ICatalog;
+  item: CreateCatalogDto;
   modalOpen: boolean;
   setModalOpen: (value: boolean) => void;
 }
@@ -19,11 +22,7 @@ export const ModalCatalog = ({ item, modalOpen, setModalOpen }: ModalProps) => {
     >
       <div className="flex flex-col md:flex-row relative">
         <div className="md:w-1/2 w-full">
-          <img
-            src={`${process.env.NEXT_PUBLIC_API_URL}${item.image}`}
-            alt={item.name}
-            className="w-full object-cover rounded-2xl"
-          />
+          <CarouselImages images={item.images} />
         </div>
 
         {/* INFO */}
@@ -38,9 +37,16 @@ export const ModalCatalog = ({ item, modalOpen, setModalOpen }: ModalProps) => {
             </span>
           </div>
 
-          <p className="text-gray-600 text-sm leading-relaxed">
-            {item.description}
-          </p>
+          <div className="prose prose-neutral max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                br: () => <br />,
+              }}
+            >
+              {item.description}
+            </ReactMarkdown>
+          </div>
           <p className="text-3xl font-bold">
             ₽{Number(item.price).toLocaleString("ru-RU")}
           </p>

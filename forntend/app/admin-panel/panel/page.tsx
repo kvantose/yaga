@@ -5,20 +5,13 @@ import { CatalogCard } from "@/src/components/CardCatalog/CardCatalog";
 import { FromCatalog } from "@/src/components/FormCatalog/FromCatalog";
 import { Orders } from "@/src/components/Orders/Orders";
 import { Header } from "@/src/components/header/Header";
+import { CreateCatalogDto } from "@/src/store/catalog.store";
 import { Tabs } from "antd";
 import { useEffect, useState } from "react";
 
-interface CatalogItem {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  image: string;
-}
 
 export default function Panel() {
-  const [data, setData] = useState<CatalogItem[]>([]);
+  const [data, setData] = useState<CreateCatalogDto[]>([]);
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/catalog`)
       .then((res) => res.json())

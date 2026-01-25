@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+//catalog.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 
 export enum CatalogCategory {
   CLOTHES = 'Одежда',
@@ -34,6 +41,21 @@ export class CatalogItem {
   @Column('decimal')
   price: number;
 
+  @OneToMany(() => CatalogImage, (image) => image.catalogItem, {
+    cascade: true,
+    eager: true,
+  })
+  images: CatalogImage[];
+}
+
+@Entity()
+export class CatalogImage {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   @Column()
-  image: string;
+  url: string;
+
+  @ManyToOne(() => CatalogItem, (item) => item.images, { onDelete: 'CASCADE' })
+  catalogItem: CatalogItem;
 }

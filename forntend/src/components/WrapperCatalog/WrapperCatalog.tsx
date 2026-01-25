@@ -20,6 +20,7 @@ export const WrapperCatalog = () => {
     return <div className="text-red-500 text-center">Ошибка загрузки каталога: {error}</div>;
   }
 
+
   return (
     <div id="catalog">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

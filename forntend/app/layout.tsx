@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     description: "Магазин авторской одежды",
     images: [
       {
-        url: `${process.env.NEXT_PUBLIC_API_URL}/images/og.png`,
+        url: `${process.env.NEXT_PUBLIC_API_URL}/images/og.png` || "/public/favicon.ico",
         width: 1200,
         height: 630,
         alt: "YAGAart - авторская одежда",

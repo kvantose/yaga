@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ICatalog } from "../types/catalog.interface";
+import { CreateCatalogDto } from "./catalog.store";
 
-export interface BasketItem extends ICatalog {
+export interface BasketItem extends CreateCatalogDto {
   quantity: number;
 }
 
@@ -10,10 +10,11 @@ interface BasketState {
   loading: boolean;
   success: string | null;
   error: string | null;
+  modalEditCard: boolean;
 
   basketItems: BasketItem[];
 
-  addItem: (item: ICatalog) => void;
+  addItem: (item: CreateCatalogDto) => void;
   removeBasketItem: (id: string) => void;
   decreaseItem: (id: string) => void;
   increaseItem: (id: string) => void;
@@ -31,6 +32,8 @@ export const useBasketStore = create<BasketState>()(
       loading: false,
       success: null,
       error: null,
+      modalEditCard: false,
+
       addItem: (item) =>
         set((state) => {
           const existing = state.basketItems.find((i) => i.id === item.id);
@@ -38,7 +41,7 @@ export const useBasketStore = create<BasketState>()(
           if (existing) {
             return {
               basketItems: state.basketItems.map((i) =>
-                i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+                i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
               ),
             };
           }
@@ -51,7 +54,7 @@ export const useBasketStore = create<BasketState>()(
         set((state) => ({
           basketItems: state.basketItems
             .map((item) =>
-              item.id === id ? { ...item, quantity: item.quantity - 1 } : item
+              item.id === id ? { ...item, quantity: item.quantity - 1 } : item,
             )
             .filter((item) => item.quantity > 0),
         })),
@@ -59,7 +62,7 @@ export const useBasketStore = create<BasketState>()(
       increaseItem: (id) =>
         set((state) => ({
           basketItems: state.basketItems.map((item) =>
-            item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+            item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
           ),
         })),
 
@@ -96,7 +99,7 @@ export const useBasketStore = create<BasketState>()(
                 telegram,
                 items: items,
               }),
-            }
+            },
           );
 
           if (!response.ok) {
@@ -118,13 +121,17 @@ export const useBasketStore = create<BasketState>()(
       totalPrice: () =>
         get().basketItems.reduce(
           (sum, item) => sum + item.price * item.quantity,
-          0
+          0,
         ),
+
+      setModelEditCard: () => {
+        set({ modalEditCard: !get().modalEditCard });
+      },
     }),
 
     {
       name: "basket-storage",
       partialize: (state) => ({ basketItems: state.basketItems }),
-    }
-  )
+    },
+  ),
 );
