@@ -1,46 +1,66 @@
+// catalog.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CatalogItem } from './catalog.entity';
+import { CatalogItem, CatalogImage } from './catalog.entity';
 import { CreateCatalogDto } from './dto/create-catalog.dto';
+import { UpdateCatalogDto } from './dto/update-catalog.dto';
 
-@Injectable()
 @Injectable()
 export class CatalogService {
   constructor(
     @InjectRepository(CatalogItem)
     private readonly repo: Repository<CatalogItem>,
+    @InjectRepository(CatalogImage)
+    private readonly imageRepo: Repository<CatalogImage>,
   ) {}
 
-  create(dto: CreateCatalogDto) {
-    const item = this.repo.create(dto);
+  async create(dto: CreateCatalogDto) {
+    const { images, ...rest } = dto;
+    const item = this.repo.create({
+      ...rest,
+      images: images?.map((url) => this.imageRepo.create({ url })),
+    });
     return this.repo.save(item);
   }
 
   findAll(limit?: number, offset?: number) {
-    const query = this.repo.createQueryBuilder('item');
-
-    if (limit !== undefined) query.take(Number(limit));
-    if (offset !== undefined) query.skip(Number(offset));
-
-    return query.getMany();
+    return this.repo.find({
+      take: limit,
+      skip: offset,
+      relations: ['images'],
+    });
   }
 
   async findOne(id: string): Promise<CatalogItem> {
-    const catalog = await this.repo.findOne({ where: { id } });
+    const catalog = await this.repo.findOne({
+      where: { id },
+      relations: ['images'],
+    });
 
     if (!catalog) {
       throw new NotFoundException(`Товар с ID ${id} не найден`);
     }
-
     return catalog;
   }
 
   async remove(id: string): Promise<void> {
     const result = await this.repo.delete(id);
-
     if (result.affected === 0) {
       throw new NotFoundException(`Товар с ID ${id} не найден`);
     }
+  }
+
+  async update(id: string, dto: UpdateCatalogDto): Promise<CatalogItem> {
+    const item = await this.findOne(id);
+    const { images, ...rest } = dto;
+
+    if (images) {
+      await this.imageRepo.delete({ catalogItem: { id } });
+      item.images = images.map((url) => this.imageRepo.create({ url }));
+    }
+
+    Object.assign(item, rest);
+    return this.repo.save(item);
   }
 }

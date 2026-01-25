@@ -1,28 +1,26 @@
 import { Button, Popconfirm, message } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { useCatalogStore } from "@/src/store/catalog.store";
+import { CreateCatalogDto, useCatalogStore } from "@/src/store/catalog.store";
 import { ModalCatalog } from "./Modal/Modal";
-import { ICatalog } from "@/src/types/catalog.interface";
 import { useBasketStore } from "@/src/store/basket.store";
-
+import { CarouselImages } from "../CarouselImages/CarouselImages";
+import { EditOutlined } from "@ant-design/icons";
+import { EditCard } from "./Modal/EditCard";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 interface CatalogCardProps {
-  item: ICatalog;
+  item: CreateCatalogDto;
   isAdmin?: boolean;
   onDelete?: (id: string) => void;
 }
 
 export const CatalogCard = ({ item, isAdmin = false }: CatalogCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalEditCard, setModalEditCard] = useState(false);
   const { removeItem } = useCatalogStore();
-  const { basketItems, addItem, decreaseItem, increaseItem } =
-    useBasketStore();
-
-  const imageSrc = item.image
-    ? `${process.env.NEXT_PUBLIC_API_URL}${item.image}`
-    : "/placeholder-image.jpg";
+  const { basketItems, addItem, decreaseItem, increaseItem } = useBasketStore();
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -38,56 +36,54 @@ export const CatalogCard = ({ item, isAdmin = false }: CatalogCardProps) => {
   };
 
   return (
-    <div
-      className="group relative bg-white rounded-2xl overflow-hidden border border-gray-100 transition-all duration-300 ease-out hover:-translate-y-1"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className="group relative bg-white rounded-2xl overflow-hidden border border-gray-100 transition-all duration-300 ease-out hover:-translate-y-1 flex flex-col h-full">
       {isAdmin && (
-        <div
-          className={`absolute top-4 right-4 z-10 flex gap-2 transition-all duration-300 ${
-            isHovered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
-          }`}
-        >
-          <Popconfirm
-            title="Удалить товар?"
-            description="Вы уверены, что хотите удалить этот товар?"
-            onConfirm={handleDelete}
-            okText="Да"
-            cancelText="Нет"
-            okButtonProps={{ danger: true, loading: isDeleting }}
+        <>
+          <div
+            className={`absolute top-4 right-4 z-10 flex gap-2 transition-all duration-300`}
           >
+            <Popconfirm
+              title="Удалить товар?"
+              description="Вы уверены, что хотите удалить этот товар?"
+              onConfirm={handleDelete}
+              okText="Да"
+              cancelText="Нет"
+              okButtonProps={{ danger: true, loading: isDeleting }}
+            >
+              <Button
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                loading={isDeleting}
+                className="shadow-md hover:shadow-lg"
+              >
+                Удалить
+              </Button>
+            </Popconfirm>
+          </div>
+          <div className="absolute top-15 right-4 z-10">
             <Button
-              danger
+              onClick={() => setModalEditCard(true)}
               size="small"
-              icon={<DeleteOutlined />}
-              loading={isDeleting}
+              type="primary"
+              icon={<EditOutlined />}
               className="shadow-md hover:shadow-lg"
             >
-              Delete
+              Редактировать
             </Button>
-          </Popconfirm>
-        </div>
+          </div>
+        </>
+      )}
+      {modalEditCard && (
+        <EditCard
+          item={item}
+          modalEditCard={modalEditCard}
+          setModalEditCard={setModalEditCard}
+        />
       )}
       {modalOpen && ModalCatalog({ item, setModalOpen, modalOpen })}
-      <div
-        className="relative w-full aspect-[4/5] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100"
-        onClick={() => setModalOpen(true)}
-      >
-        {imageSrc ? (
-          <img
-            src={imageSrc}
-            alt={item.name}
-            className={`w-full h-full object-cover transition-transform duration-500 ease-out ${
-              isHovered ? "scale-110" : "scale-100"
-            }`}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-gray-400 text-sm">No image</span>
-          </div>
-        )}
-
+      <div onClick={() => setModalOpen(true)} className="shrink-0">
+        <CarouselImages images={item.images} />
         <div className="absolute top-4 left-4">
           <span className="inline-block bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
             {item.category}
@@ -95,17 +91,27 @@ export const CatalogCard = ({ item, isAdmin = false }: CatalogCardProps) => {
         </div>
       </div>
 
-      <div className="p-5">
-        <div className="mb-3">
-          <h3 className="font-bold text-lg text-gray-800 line-clamp-1 mb-1">
+      <div className="p-5 flex flex-col grow">
+        <div className="mb-3 grow flex flex-col min-h-0">
+          <h3 className="font-bold text-lg text-gray-800 line-clamp-1 mb-1 shrink-0">
             {item.name}
           </h3>
-          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
-            {item.description}
-          </p>
+          <div className="prose prose-neutral max-w-none overflow-hidden grow min-h-0">
+            <div className="max-h-24 overflow-y-auto">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  br: () => <br />,
+                  p: ({ children }) => <p className="text-sm text-gray-600 line-clamp-3 mb-0">{children}</p>,
+                }}
+              >
+                {item.description}
+              </ReactMarkdown>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100 shrink-0">
           <div className="flex flex-col">
             <span className="text-xs text-gray-500 mb-1">Цена</span>
             <span className="text-2xl font-bold text-gray-900">
@@ -124,7 +130,9 @@ export const CatalogCard = ({ item, isAdmin = false }: CatalogCardProps) => {
               <Button onClick={() => increaseItem(item.id)}>+</Button>
             </div>
           ) : (
-            <Button type='primary' onClick={() => addItem(item)}>В корзину +</Button>
+            <Button type="primary" onClick={() => addItem(item)}>
+              В корзину +
+            </Button>
           )}
         </div>
       </div>

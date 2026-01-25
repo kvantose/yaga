@@ -54,19 +54,3 @@ body {
   animation: marquee-right 8s linear infinite alternate;
   will-change: transform;
 }
-
-/* h1 {
-  font-size: 24px;
-}
-
-a {
-  text-decoration: none;
-  color: var(--color-white);
-  
-  &:hover {
-    transition: all 0.2s ease-in-out;
-    text-decoration: underline;
-    color: var(--color-accent);
-    text-underline-offset: 4px;
-  }
-} */

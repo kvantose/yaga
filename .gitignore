@@ -31,7 +31,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+forntend/.env
 
 # vercel
 .vercel
@@ -79,7 +79,7 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # dotenv environment variable files
-.env
+forntend/.env
 .env.development.local
 .env.test.local
 .env.production.local
@@ -97,3 +97,6 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+/keys
+.env
+/bash/yaga-frontend-amd64.tar.gz

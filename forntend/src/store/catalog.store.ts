@@ -1,28 +1,41 @@
-// store/catalog.store.ts
 import { create } from "zustand";
-import type { ICatalog } from "../types/catalog.interface";
+
+interface IImages {
+  id: string;
+  url: string;
+}
 
 export interface CreateCatalogDto {
+  id: string;
   name: string;
   description: string;
   category: string;
   price: number;
-  image: string;
+  images: IImages[];
+}
+
+// DTO для отправки на бэкенд (бэкенд ожидает images: string[])
+export interface CatalogApiDto {
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  images: string[];
 }
 
 interface CatalogState {
-  items: ICatalog[];
+  items: CreateCatalogDto[];
   isLoading: boolean;
   isSubmitting: boolean;
   error: string | null;
 
-  // Actions
   fetchItems: () => Promise<void>;
-  addItem: (itemData: CreateCatalogDto) => Promise<ICatalog | null>;
+  addItem: (itemData: CatalogApiDto) => Promise<CreateCatalogDto | null>;
   removeItem: (id: string) => Promise<void>;
-  uploadImage: (file: File) => Promise<string>;
+  editItem: (id: string, itemData: CatalogApiDto) => Promise<void>;
 
-  // Helpers
+  uploadImages: (files: File[]) => Promise<string[]>;
+
   clearError: () => void;
 }
 
@@ -41,7 +54,7 @@ export const useCatalogStore = create<CatalogState>((set) => ({
       const response = await fetch(`${API_URL}/api/catalog`);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Ошибка при загрузке: ${response.status}`);
       }
 
       const data = await response.json();
@@ -54,27 +67,30 @@ export const useCatalogStore = create<CatalogState>((set) => ({
     }
   },
 
-  uploadImage: async (file: File): Promise<string> => {
+  uploadImages: async (files: File[]): Promise<string[]> => {
     const formData = new FormData();
-    formData.append("file", file);
 
-    const response = await fetch(`${API_URL}/api/upload`, {
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    const response = await fetch(`${API_URL}/api/upload-multiple`, {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Ошибка при загрузке изображения");
+      throw new Error(error.message || "Ошибка загрузки");
     }
 
     const result = await response.json();
-    return result.url || result.filename || `/uploads/${file.name}`;
+    return result.map((img: { url: string }) => img.url);
   },
 
   addItem: async (
-    itemData: Omit<ICatalog, "id">
-  ): Promise<ICatalog | null> => {
+    itemData: CatalogApiDto,
+  ): Promise<CreateCatalogDto | null> => {
     set({ isSubmitting: true, error: null });
 
     try {
@@ -92,7 +108,7 @@ export const useCatalogStore = create<CatalogState>((set) => ({
       }
 
       const newItem = await response.json();
-      // Оптимистичное обновление UI
+
       set((state) => ({
         items: [...state.items, newItem],
         isSubmitting: false,
@@ -107,6 +123,36 @@ export const useCatalogStore = create<CatalogState>((set) => ({
     }
   },
 
+  editItem: async (id: string, itemData: CatalogApiDto) => {
+    try {
+      const response = await fetch(`${API_URL}/api/catalog/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(itemData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Ошибка при редактировании товара");
+      }
+
+      // Обновляем элемент в store после успешного обновления
+      const updatedItem = await response.json();
+      set((state) => ({
+        items: state.items.map((item) =>
+          item.id === id ? updatedItem : item
+        ),
+      }));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Произошла ошибка";
+      set({ error: message });
+      throw error;
+    }
+  },
+
   removeItem: async (id: string): Promise<void> => {
     try {
       const response = await fetch(`${API_URL}/api/delete-catalog/${id}`, {
@@ -114,10 +160,9 @@ export const useCatalogStore = create<CatalogState>((set) => ({
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Ошибка при удалении: ${response.status}`);
       }
 
-      // Удаляем из состояния
       set((state) => ({
         items: state.items.filter((item) => item.id !== id),
       }));

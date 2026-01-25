@@ -15,6 +15,6 @@ export class CreateCatalogDto {
   @IsNumber()
   price: number;
 
-  @IsString()
-  image: string;
+  @IsString({ each: true })
+  images: string[];
 }

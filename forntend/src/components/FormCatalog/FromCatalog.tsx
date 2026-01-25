@@ -1,213 +1,202 @@
 "use client";
 
-import { Button, Input, Select, message } from "antd";
-import TextArea from "antd/es/input/TextArea";
-import Upload from "antd/es/upload";
-import { useEffect, useState } from "react";
-import type { UploadChangeParam, UploadFile } from "antd/es/upload/interface";
-import { useCatalogStore } from "@/src/store/catalog.store";
+import { useState } from "react";
+import {
+  Form,
+  Input,
+  Select,
+  Button,
+  Upload,
+  InputNumber,
+  message,
+  Card,
+  Popover,
+} from "antd";
+import { QuestionCircleOutlined, UploadOutlined } from "@ant-design/icons";
+import type { UploadFile, UploadChangeParam } from "antd/es/upload/interface";
+import { useCatalogStore, CatalogApiDto } from "@/src/store/catalog.store";
+import { CATEGORIES } from "@/src/data/categories";
+const { TextArea } = Input;
 
-export interface CreateCatalogDto {
+interface FormValues {
   name: string;
   description: string;
   category: string;
   price: number;
-  image: string;
+  image: UploadFile[];
 }
 
+const PopoverMarkdown = () => (
+  <Popover content={<MarkdownHint />} placement="right">
+    <span className="flex items-center gap-2 cursor-pointer">
+      Описание
+      <QuestionCircleOutlined className="text-gray-400 hover:text-gray-600" />
+    </span>
+  </Popover>
+);
+
+const MarkdownHint = () => (
+  <div className="text-sm space-y-2 max-w-xs">
+    <p className="font-semibold">Поддерживается Markdown:</p>
+
+    <div className="font-mono bg-gray-50 p-2 rounded text-xs space-y-1">
+      <div>**Жирный**</div>
+      <div>*Курсив*</div>
+      <div>~~Зачёркнутый~~</div>
+      <div># Заголовок</div>
+      <div>- Пункт списка</div>
+      <div>[Ссылка](https://example.com)</div>
+    </div>
+
+    <p className="text-gray-500 text-xs">
+      Перенос строки — просто 2 раза Enter
+    </p>
+    <a
+      href="https://texterra.ru/blog/ischerpyvayushchaya-shpargalka-po-sintaksisu-razmetki-markdown-na-zametku-avtoram-veb-razrabotchikam.html"
+      target="_blank"
+      className="text-blue-500 hover:underline"
+    >
+      Подробнее
+    </a>
+  </div>
+);
+
 export const FromCatalog = () => {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
-  const [price, setPrice] = useState<string>("");
-  const [imageFile, setImageFile] = useState<UploadFile | null>(null);
+  const [form] = Form.useForm<FormValues>();
+  const [loading, setLoading] = useState(false);
 
-  const { fetchItems, addItem, uploadImage, clearError } = useCatalogStore();
+  const { addItem, uploadImages } = useCatalogStore();
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
-
-  const validateForm = (): boolean => {
-    if (!name.trim()) {
-      message.error("Введите название товара");
-      return false;
-    }
-    if (!description.trim()) {
-      message.error("Введите описание");
-      return false;
-    }
-    if (!category) {
-      message.error("Выберите категорию");
-      return false;
-    }
-
-    const parsedPrice = parseFloat(price);
-    if (!price || isNaN(parsedPrice) || parsedPrice <= 0) {
-      message.error("Введите корректную цену");
-      return false;
-    }
-
-    if (!imageFile?.originFileObj) {
-      message.error("Выберите изображение");
-      return false;
-    }
-
-    return true;
+  const normFile = (e: UploadChangeParam) => {
+    if (Array.isArray(e)) return e;
+    return e?.fileList;
   };
 
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-    setCategory("");
-    setPrice("");
-    setImageFile(null);
-    clearError();
-  };
+  const handleSubmit = async (values: FormValues) => {
+    const files = values.image
+      ?.map((file) => file.originFileObj)
+      .filter(Boolean) as File[];
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
-    if (!imageFile?.originFileObj) return;
-
-    try {
-      const imageUrl = await uploadImage(imageFile.originFileObj);
-      const parsedPrice = parseFloat(price);
-      const itemData: CreateCatalogDto = {
-        name: name.trim(),
-        description: description.trim(),
-        category,
-        price: parsedPrice,
-        image: imageUrl,
-      };
-
-      const newItem = await addItem(itemData);
-
-      if (newItem) {
-        message.success(`Товар "${name}" успешно добавлен!`);
-        resetForm();
-      }
-    } catch (error) {
-      console.error("Ошибка формы:", error);
-    }
-  };
-
-  const handleImageChange = (info: UploadChangeParam) => {
-    if (info.fileList.length > 0) {
-      const file = info.fileList[0];
-      if (file.type && !file.type.startsWith("image/")) {
-        message.error("Можно загружать только изображения");
-        return;
-      }
-      setImageFile(file);
-    } else {
-      setImageFile(null);
-    }
-  };
-
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const sanitizedValue = value.replace(/[^\d.]/g, "");
-    const parts = sanitizedValue.split(".");
-    if (parts.length > 2) {
+    if (!files || files.length === 0) {
+      message.error("Пожалуйста, выберите изображения");
       return;
     }
-    setPrice(sanitizedValue);
+
+    setLoading(true);
+    try {
+      const uploadedUrls = await uploadImages(files);
+
+      if (!uploadedUrls.length) {
+        throw new Error("Не удалось загрузить изображения");
+      }
+
+      const itemData: CatalogApiDto = {
+        name: values.name.trim(),
+        description: values.description.trim(),
+        category: values.category,
+        price: values.price,
+        images: uploadedUrls,
+      };
+
+      await addItem(itemData);
+
+      message.success(`Товар "${itemData.name}" успешно добавлен!`);
+      form.resetFields();
+      form.setFieldsValue({ image: [] });
+    } catch (error) {
+      console.error(error);
+      message.error("Не удалось создать карточку товара");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex gap-6 w-full">
-      <div className="w-full bg-white rounded-lg shadow-lg p-6 mb-8">
-        <h1 className="text-2xl font-bold mb-6">Добавить товар</h1>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Название товара *
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Например: Худи черное"
-              size="large"
-            />
-          </div>
+    <div className="w-full mx-auto p-4">
+      <Card title="Новый товар" className="shadow-sm border-gray-200">
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          requiredMark="optional"
+        >
+          <Form.Item
+            name="name"
+            label="Название"
+            rules={[{ required: true, message: "Введите название" }]}
+          >
+            <Input placeholder="Например: Худи oversize" size="large" />
+          </Form.Item>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Описание *</label>
+          <Form.Item
+            name="description"
+            label={PopoverMarkdown()}
+            rules={[{ required: true, message: "Заполните описание" }]}
+          >
             <TextArea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Подробное описание товара..."
-              rows={4}
+              rows={6}
+              placeholder={`**Жирный текст**
+*Курсив*
+- список
+[Ссылка](https://example.com)`}
             />
-          </div>
+          </Form.Item>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Категория *
-            </label>
+          <Form.Item
+            name="category"
+            label="Категория"
+            rules={[{ required: true, message: "Выберите категорию" }]}
+          >
             <Select
-              value={category || undefined}
-              onChange={setCategory}
-              placeholder="Выберите категорию"
-              style={{ width: "100%" }}
+              placeholder="Выбрать..."
               size="large"
-              options={[
-                { value: "Одежда", label: "Одежда" },
-                { value: "Худи", label: "Худи" },
-                { value: "Футболки", label: "Футболки" },
-                { value: "Брюки", label: "Брюки" },
-                { value: "Кардиганы", label: "Кардиганы" },
-                { value: "Аксессуары", label: "Аксессуары" },
-                { value: "Украшения", label: "Украшения" },
-                { value: "Головные уборы", label: "Головные уборы" },
-                { value: "Шарфы", label: "Шарфы" },
-                { value: "Варежки", label: "Варежки" },
-                { value: "Сумки", label: "Сумки" },
-              ]}
+              options={CATEGORIES}
             />
-          </div>
+          </Form.Item>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Цена (рубли) *
-            </label>
-            <Input
-              value={price === null ? "" : price}
-              onChange={handlePriceChange}
-              type="number"
-              placeholder="1999"
-              min={0}
-              step={0.01}
-              size="large"
-            />
-          </div>
+          <Form.Item
+            className="w-full"
+            name="price"
+            label="Цена"
+            rules={[
+              { required: true, message: "Укажите цену" },
+              { type: "number", min: 1, message: "Минимум 1 ₽" },
+            ]}
+          >
+            <InputNumber className="w-full" size="large" placeholder="0" />
+          </Form.Item>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Изображение *
-            </label>
+          <Form.Item
+            name="image"
+            label="Фотография"
+            valuePropName="fileList"
+            getValueFromEvent={normFile}
+            rules={[{ required: true }]}
+          >
             <Upload
-              maxCount={1}
-              accept="image/*"
+              maxCount={10}
+              listType="picture-card"
               beforeUpload={() => false}
-              onChange={handleImageChange}
-              onRemove={() => setImageFile(null)}
+              accept="image/*"
             >
-              <Button>Выбрать изображение</Button>
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Загрузить</div>
+              </div>
             </Upload>
-          </div>
+          </Form.Item>
 
           <Button
             type="primary"
-            size="large"
-            onClick={handleSubmit}
-            className="w-full mt-6"
+            htmlType="submit"
+            loading={loading}
+            block
+            className="mt-4"
           >
-            Добавить товар
+            Создать карточку
           </Button>
-        </div>
-      </div>
+        </Form>
+      </Card>
     </div>
   );
 };

@@ -39,7 +39,7 @@ export const HeaderBasket = () => {
             className="flex gap-3 items-center justify-between"
           >
             <img
-              src={process.env.NEXT_PUBLIC_API_URL + item.image}
+              src={process.env.NEXT_PUBLIC_API_URL + item.images[0].url}
               alt={item.name}
               className="w-24 h-24 object-cover rounded-2xl"
             />
